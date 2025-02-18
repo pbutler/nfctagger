@@ -1,10 +1,12 @@
-from loguru import logger
-import construct as c
+from typing import Union
 
-from . import Device, Tag
+import construct as c
+from loguru import logger
+
+from . import Device
+from . import Tag
 from ..data import Command
 from ..data import Response
-
 
 class NTagResponse(Response):
     pass
