@@ -1,9 +1,7 @@
 from loguru import logger
 
-from ..data import (
-    Response,
-    Command,
-)
+from ..data import Command
+from ..data import Response
 
 
 class Device:
