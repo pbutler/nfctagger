@@ -1,0 +1,24 @@
+[project]
+name = "nfctagger"
+version = "0.0.1"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Patrick Butler", email = "pbutler@killertux.org" }
+]
+requires-python = ">=3.9"
+dependencies = [
+    "construct>=2.10.70",
+    "loguru>=0.7.3",
+    "ndeflib>=0.3.3",
+    "pyscard>=2.2.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "ipython>=8.18.1",
+]
