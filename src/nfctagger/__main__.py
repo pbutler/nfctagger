@@ -57,6 +57,9 @@ class PCSCObserver(CardObserver):
     """Observer class for NFC card detection and processing."""
 
     def update(self, observable, handlers):
+        """
+        The handler for the pyscard observer code.
+        """
         (addedcards, _) = handlers
         for card in addedcards:
             print(f"Card detected, ATR: {toHexString(card.atr)}")
@@ -64,22 +67,34 @@ class PCSCObserver(CardObserver):
             try:
                 connection = card.createConnection()
                 connection.connect()
+                # use the connection to create the necesary objects
                 sc = PCSC(connection)
+
+                # drill down to get the tag object
                 tag: NTag = sc.get_tag()
-                print(tag)
+
                 print(tag.get_tag_version())
+                #For now this is a test statement to read the first 4 bytes of the user memory
                 print(tag.mem_read4(0))
+
+                # read the entire user memory (higher level)
                 data = tag.mem_read_user()
+
+                # parse the data from NDEF TLV
                 tlv = NDEF_TLV().parse(data)
                 assert tlv is not None
                 print(tlv)
+
+                # get the V from the TLV and print it
                 decoder = ndef.message_decoder(tlv.value)
                 for record in decoder:
                     print(record)
 
+                # write a new record to the tag, overwriting the old
                 rec = ndef.TextRecord(f"Hello, World!: {datetime.now()}")
                 ndef_msg = b"".join(ndef.message_encoder([rec]))
 
+                # build a valid TLV entry with the ndef message to be written
                 data = NDEF_TLV().build({"value": ndef_msg})
                 print(data)
                 tag.mem_write_user(0, data)
@@ -90,6 +105,7 @@ class PCSCObserver(CardObserver):
 
 
 def main():
+    #nothing fancy here this is just how pyscard works, see observer above
     print("Starting NFC card processing...")
     cardmonitor = CardMonitor()
     cardobserver = PCSCObserver()
