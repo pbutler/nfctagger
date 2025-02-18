@@ -17,7 +17,7 @@ from .pn53x import PN53x
 
 
 class ACR122DirectTransmitCmd(Command):
-    """ Contains the header 0xff 0x00 0x00 0x00 and then the data to be sent"""
+    """Contains the header 0xff 0x00 0x00 0x00 and then the data to be sent"""
 
     def _struct(self):
         return Struct(
@@ -31,6 +31,7 @@ class ACR122DirectTransmitCmd(Command):
 
 class ACR122DirectTransmitResp(Response):
     """Response is just the response from the child device"""
+
     def _struct(self):
         return Struct(
             "data_out" / GreedyBytes,  # pyright: ignore
@@ -44,7 +45,10 @@ class ACR122U(ParentDevice):
     """
     ACR122U device object
     """
-    possible_children = [PN53x,]
+
+    possible_children = [
+        PN53x,
+    ]
 
     @classmethod
     def identify(cls, parent) -> bool:
