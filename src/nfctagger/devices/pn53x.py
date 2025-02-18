@@ -5,10 +5,14 @@ devices.
 More info:
 https://www.nxp.com/docs/en/user-guide/157830_PN533_um080103.pdf
 """
+from construct import Bytes
+from construct import Const
+from construct import GreedyBytes
+from construct import Struct
 
-from ..data import Response, Command
-from construct import Struct, Bytes, GreedyBytes, Const
 from . import ParentDevice
+from ..data import Command
+from ..data import Response
 from .ntag import NTag
 
 class PN53xInCommunicateThruResp(Response):
