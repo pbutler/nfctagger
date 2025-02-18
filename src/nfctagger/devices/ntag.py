@@ -114,8 +114,8 @@ class NTag(Tag):
         response = NTagWriteResp(bdata=response.bytes())
         logger.debug(f"<{len(response)}")
 
-    def mem_write_user(self, address, data):
-        address = self._user_start_page + address
+    def mem_write_user(self, data: Union[bytes, bytearray]):
+        address = self._user_start_page
         assert len(data) <= self._user_size
         writes = len(data) // 4
         for i in range(writes):
