@@ -1,3 +1,7 @@
+"""
+Can be run from python -m nfctagger
+This is mostly a test for reading and writing to a tag
+"""
 from datetime import datetime
 from typing import Dict
 
