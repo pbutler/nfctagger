@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: "Install uv"
         uses: astral-sh/setup-uv@v5
+      - name: "Checkout code"
+        uses: actions/checkout@v4
       - name: Set up Python
         run: uv python install 3.9  # Or whatever version I want to use.
       - name: Build
