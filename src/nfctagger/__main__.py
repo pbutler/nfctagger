@@ -85,12 +85,11 @@ class PCSCObserver(CardObserver):
                 data = tag.mem_read_user()
 
                 # parse the data from NDEF TLV
-                tlv = NDEF_TLV().parse(data)
-                assert tlv is not None
-                print(tlv)
+                tlv = NDEF_TLV(bdata=data)
+                logger.info(tlv)
 
                 # get the V from the TLV and print it
-                decoder = ndef.message_decoder(tlv.value)
+                decoder = ndef.message_decoder(tlv._data.value)
                 for record in decoder:
                     logger.info(record)
 
@@ -99,9 +98,9 @@ class PCSCObserver(CardObserver):
                 ndef_msg = b"".join(ndef.message_encoder([rec]))
 
                 # build a valid TLV entry with the ndef message to be written
-                data = NDEF_TLV().build({"value": ndef_msg})
-                tag.mem_write_user(data)
+                data = NDEF_TLV(data={"value": ndef_msg})
                 logger.info(data)
+                tag.mem_write_user(data.bytes())
 
             except Exception as e:
                 logger.exception(f"An error occurred: {e}")
