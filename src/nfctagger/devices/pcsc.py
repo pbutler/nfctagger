@@ -1,11 +1,11 @@
-from loguru import logger
+from construct import GreedyBytes
+from construct import Struct
 
-from construct import Struct, GreedyBytes
-
-from . import ParentDevice, Tag
+from . import ParentDevice
+from . import Tag
+from ..data import Command
+from ..data import Response
 from .acr122 import ACR122U
-
-from ..data import Response, Command
 
 
 class PCSCResp(Response):
