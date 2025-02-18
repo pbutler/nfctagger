@@ -1,0 +1,24 @@
+# Publish a release to PyPI.
+name: "Publish to PyPI"
+
+on:
+  workflow_dispatch:
+  
+jobs:
+  pypi-publish:
+    name: Upload to PyPI
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+    permissions:
+      # For PyPI's trusted publishing.
+      id-token: write
+    steps:
+      - name: "Install uv"
+        uses: astral-sh/setup-uv@v5
+      - name: Set up Python
+        run: uv python install 3.9  # Or whatever version I want to use.
+      - name: Build
+        run: uv build
+      - name: Publish
+        run: uv publish
