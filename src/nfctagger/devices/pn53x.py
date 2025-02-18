@@ -1,12 +1,15 @@
-from logging import getLogger
+"""
+This is the chipset underlying the ACR122U device and mant other NFC
+devices.
+
+More info:
+https://www.nxp.com/docs/en/user-guide/157830_PN533_um080103.pdf
+"""
 
 from ..data import Response, Command
 from construct import Struct, Bytes, GreedyBytes, Const
 from . import ParentDevice
 from .ntag import NTag
-
-log = getLogger(__name__)
-
 
 class PN53xInCommunicateThruResp(Response):
     def _struct(self):
@@ -22,6 +25,7 @@ class PN53xInCommunicateThruResp(Response):
 
 
 class PN53xInCommunicateThruCmd(Command):
+    """Tunneling command, with constant header"""
     def _struct(self):
         return Struct(
             "header" / Const(b"\xd4\x42"),
@@ -29,21 +33,26 @@ class PN53xInCommunicateThruCmd(Command):
         )
 
     def validate(self):
-        if len(self._data.data_out) > 264:
+        """ Validate data_out field, which as the docs says must be less than 264 bytes"""
+        #TODO: Hook this in
+        if len(self._data.data_out) < 264:
             raise ValueError("data_out must be less than 264 bytes")
 
-    def child(self):
+    def child(self) -> bytes:
+        """Return the data_out field"""
         return self._data.data_out.build()
 
 
 class PN53x(ParentDevice):
-    possible_children = (NTag,)
+
+    possible_children = [NTag, ]
 
     def __init__(self, connection):
         super().__init__(connection)
 
     @classmethod
-    def identify(cls, connection):
+    def identify(cls, parent):
+        #TODO: Implement actual identification
         return True
 
     def write(self, cmd: Command, tunnel=False) -> Response:
