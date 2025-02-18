@@ -3,20 +3,17 @@ ACS ACR122U device interface data structures
 
 https://www.acs.com.hk/download-manual/419/API-ACR122U-2.04.pdf
 """
-from logging import getLogger
-
 from construct import Const
 from construct import GreedyBytes
 from construct import Int8ul
 from construct import Prefixed
 from construct import Struct
+from loguru import logger
 
 from . import ParentDevice
 from ..data import Command
 from ..data import Response
 from .pn53x import PN53x
-
-log = getLogger(__name__)
 
 
 class ACR122DirectTransmitCmd(Command):
