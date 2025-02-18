@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Dict
 
 import ndef
+from loguru import logger
 from smartcard.CardMonitoring import CardMonitor
 from smartcard.CardMonitoring import CardObserver
 from smartcard.util import toHexString
@@ -9,7 +10,6 @@ from smartcard.util import toHexString
 from .devices.ntag import NTag
 from .devices.pcsc import PCSC
 from .tlv import NDEF_TLV
-
 
 def decode_atr(atr: str) -> Dict[str, str]:
     """Decode the ATR (Answer to Reset) string into readable components.
@@ -62,8 +62,8 @@ class PCSCObserver(CardObserver):
         """
         (addedcards, _) = handlers
         for card in addedcards:
-            print(f"Card detected, ATR: {toHexString(card.atr)}")
-            print(f"Card ATR: {decode_atr(toHexString(card.atr))}")
+            logger.info(f"Card detected, ATR: {toHexString(card.atr)}")
+            logger.info(f"Card ATR: {decode_atr(toHexString(card.atr))}")
             try:
                 connection = card.createConnection()
                 connection.connect()
@@ -73,9 +73,9 @@ class PCSCObserver(CardObserver):
                 # drill down to get the tag object
                 tag: NTag = sc.get_tag()
 
-                print(tag.get_tag_version())
+                logger.info(tag.get_tag_version())
                 #For now this is a test statement to read the first 4 bytes of the user memory
-                print(tag.mem_read4(0))
+                logger.info(tag.mem_read4(0))
 
                 # read the entire user memory (higher level)
                 data = tag.mem_read_user()
@@ -88,7 +88,7 @@ class PCSCObserver(CardObserver):
                 # get the V from the TLV and print it
                 decoder = ndef.message_decoder(tlv.value)
                 for record in decoder:
-                    print(record)
+                    logger.info(record)
 
                 # write a new record to the tag, overwriting the old
                 rec = ndef.TextRecord(f"Hello, World!: {datetime.now()}")
@@ -96,11 +96,11 @@ class PCSCObserver(CardObserver):
 
                 # build a valid TLV entry with the ndef message to be written
                 data = NDEF_TLV().build({"value": ndef_msg})
-                print(data)
                 tag.mem_write_user(data)
+                logger.info(data)
 
             except Exception as e:
-                print(f"An error occurred: {e}")
+                logger.exception(f"An error occurred: {e}")
                 raise
 
 
