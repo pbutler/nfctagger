@@ -115,7 +115,6 @@ def main():
         input("Press Enter to stop...\n")
     finally:
         cardmonitor.deleteObserver(cardobserver)
-        print(f"Stopped NFC card processing. Total cards processed: {cards_processed}")
 
 
 if __name__ == "__main__":
