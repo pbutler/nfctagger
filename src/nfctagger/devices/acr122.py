@@ -52,8 +52,13 @@ class ACR122U(ParentDevice):
 
     @classmethod
     def identify(cls, parent) -> bool:
-        #TODO: this is a hack until I have a variety of devices to test
-        return True
+        reader = parent._connection.getReader()
+        logger.debug(f"Found Reader: {reader}")
+
+        if "ACS ACR122U PICC" in reader:
+            return True
+        else:
+            return False
 
     def write(self, cmd: Command, tunnel=False) -> Response:
         """
