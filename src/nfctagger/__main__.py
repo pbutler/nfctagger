@@ -1,13 +1,14 @@
+from datetime import datetime
 from typing import Dict
-from smartcard.CardMonitoring import CardMonitor, CardObserver
-from smartcard.util import toHexString
-from smartcard.CardConnection import CardConnection
 
 import ndef
-from .tlv import NDEF_TLV
-from .devices.pcsc import PCSC
+from smartcard.CardMonitoring import CardMonitor
+from smartcard.CardMonitoring import CardObserver
+from smartcard.util import toHexString
+
 from .devices.ntag import NTag
-from datetime import datetime
+from .devices.pcsc import PCSC
+from .tlv import NDEF_TLV
 
 
 def decode_atr(atr: str) -> Dict[str, str]:
