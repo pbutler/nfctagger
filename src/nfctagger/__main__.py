@@ -97,7 +97,7 @@ class PCSCObserver(CardObserver):
                 # build a valid TLV entry with the ndef message to be written
                 data = NDEF_TLV().build({"value": ndef_msg})
                 print(data)
-                tag.mem_write_user(0, data)
+                tag.mem_write_user(data)
 
             except Exception as e:
                 print(f"An error occurred: {e}")
