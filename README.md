@@ -37,4 +37,4 @@ pip install nfctagger
 ## Development
 
 This library uses the `uv` program to manage the virtual environment
-and dependencies.  
+and dependencies. Imports should follow the order `reorder-python-imports`.
