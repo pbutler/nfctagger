@@ -3,6 +3,8 @@ name = "nfctagger"
 version = "0.0.1"
 description = "Add your description here"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     { name = "Patrick Butler", email = "pbutler@killertux.org" }
 ]
@@ -13,6 +15,17 @@ dependencies = [
     "ndeflib>=0.3.3",
     "pyscard>=2.2.1",
 ]
+
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Operating System :: OS Independent",
+  "Development Status :: 3 - Alpha",
+]
+
+[project.urls]
+Homepage = "https://github.com/pbutler/nfctagger"
+Issues = "https://github.com/pbutler/nfctagger/issues"
+
 
 [build-system]
 requires = ["hatchling"]
