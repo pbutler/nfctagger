@@ -5,12 +5,16 @@ https://www.acs.com.hk/download-manual/419/API-ACR122U-2.04.pdf
 """
 from logging import getLogger
 
-from construct import Struct, Const, Prefixed, Int8ul, GreedyBytes
+from construct import Const
+from construct import GreedyBytes
+from construct import Int8ul
+from construct import Prefixed
+from construct import Struct
 
 from . import ParentDevice
+from ..data import Command
+from ..data import Response
 from .pn53x import PN53x
-
-from ..data import Response, Command
 
 log = getLogger(__name__)
 
