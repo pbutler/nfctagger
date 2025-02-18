@@ -1,3 +1,8 @@
+"""
+ACS ACR122U device interface data structures
+
+https://www.acs.com.hk/download-manual/419/API-ACR122U-2.04.pdf
+"""
 from logging import getLogger
 
 from construct import Struct, Const, Prefixed, Int8ul, GreedyBytes
@@ -11,6 +16,8 @@ log = getLogger(__name__)
 
 
 class ACR122DirectTransmitCmd(Command):
+    """ Contains the header 0xff 0x00 0x00 0x00 and then the data to be sent"""
+
     def _struct(self):
         return Struct(
             "header" / Const(b"\xff\x00\x00\x00"),
@@ -22,6 +29,7 @@ class ACR122DirectTransmitCmd(Command):
 
 
 class ACR122DirectTransmitResp(Response):
+    """Response is just the response from the child device"""
     def _struct(self):
         return Struct(
             "data_out" / GreedyBytes,  # pyright: ignore
@@ -32,13 +40,21 @@ class ACR122DirectTransmitResp(Response):
 
 
 class ACR122U(ParentDevice):
-    possible_children = (PN53x,)
+    """
+    ACR122U device object
+    """
+    possible_children = [PN53x,]
 
     @classmethod
-    def identify(cls, connection):
+    def identify(cls, parent) -> bool:
+        #TODO: this is a hack until I have a variety of devices to test
         return True
 
     def write(self, cmd: Command, tunnel=False) -> Response:
+        """
+        If tunnel is True, the command will be sent to the child device
+        by way for wrapping it in a ACR122DirectTransmitCmd frame
+        """
         if tunnel:
             tframe = ACR122DirectTransmitCmd(data={"data_in": cmd.bytes()})
             response = self._connection.write(tframe, tunnel=True)
