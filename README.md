@@ -34,6 +34,13 @@ installed with pip:
 pip install nfctagger
 ```
 
+## Usage
+
+Right now after installation you can either use it as a library or as a command line tool to overwrite an NTAG215 with a hello world message
+```bash
+python -mnfctagger
+```
+
 ## Development
 
 This library uses the `uv` program to manage the virtual environment
