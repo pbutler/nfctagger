@@ -57,8 +57,46 @@ def decode_atr(atr: str) -> Dict[str, str]:
     }
 
 
+def handle(card_connection):
+    """
+    Handle the NFC card connection and process the data.
+    """
+    # use the connection to create the necessary objects
+    sc = PCSC(card_connection)
+
+    # drill down to get the tag object
+    tag: NTag = sc.get_tag()
+
+    logger.info(tag.get_tag_version())
+    #For now this is a test statement to read the first 4 bytes of the user memory
+    logger.info(tag.mem_read4(0))
+
+    # read the entire user memory (higher level)
+    data = tag.mem_read_user()
+
+    # parse the data from NDEF TLV
+    tlv = NDEF_TLV(bdata=data)
+    logger.info(tlv)
+
+    # get the V from the TLV and print it
+    decoder = ndef.message_decoder(tlv._data.value)
+    for record in decoder:
+        logger.info(record)
+
+    # write a new record to the tag, overwriting the old
+    rec = ndef.TextRecord(f"Hello, World!: {datetime.now()}")
+    ndef_msg = b"".join(ndef.message_encoder([rec]))
+
+    # build a valid TLV entry with the ndef message to be written
+    data = NDEF_TLV(data={"value": ndef_msg})
+    logger.info(data)
+    tag.mem_write_user(data.bytes())
+
 class PCSCObserver(CardObserver):
     """Observer class for NFC card detection and processing."""
+    def __init__(self, fn):
+        super().__init__()
+        self._fn = fn
 
     def update(self, observable, handlers):
         """
@@ -71,37 +109,7 @@ class PCSCObserver(CardObserver):
             try:
                 connection = card.createConnection()
                 connection.connect()
-                # use the connection to create the necesary objects
-                sc = PCSC(connection)
-
-                # drill down to get the tag object
-                tag: NTag = sc.get_tag()
-
-                logger.info(tag.get_tag_version())
-                #For now this is a test statement to read the first 4 bytes of the user memory
-                logger.info(tag.mem_read4(0))
-
-                # read the entire user memory (higher level)
-                data = tag.mem_read_user()
-
-                # parse the data from NDEF TLV
-                tlv = NDEF_TLV(bdata=data)
-                logger.info(tlv)
-
-                # get the V from the TLV and print it
-                decoder = ndef.message_decoder(tlv._data.value)
-                for record in decoder:
-                    logger.info(record)
-
-                # write a new record to the tag, overwriting the old
-                rec = ndef.TextRecord(f"Hello, World!: {datetime.now()}")
-                ndef_msg = b"".join(ndef.message_encoder([rec]))
-
-                # build a valid TLV entry with the ndef message to be written
-                data = NDEF_TLV(data={"value": ndef_msg})
-                logger.info(data)
-                tag.mem_write_user(data.bytes())
-
+                self._fn(connection)
             except Exception as e:
                 logger.exception(f"An error occurred: {e}")
                 raise
@@ -111,7 +119,8 @@ def main():
     #nothing fancy here this is just how pyscard works, see observer above
     print("Starting NFC card processing...")
     cardmonitor = CardMonitor()
-    cardobserver = PCSCObserver()
+    cardobserver = PCSCObserver(handle)
+    # once addObserver is called, the observer will listen in a separate thread
     cardmonitor.addObserver(cardobserver)
 
     try:
