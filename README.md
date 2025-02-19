@@ -37,8 +37,26 @@ pip install nfctagger
 ## Usage
 
 Right now after installation you can either use it as a library or as a command line tool to overwrite an NTAG215 with a hello world message
+
 ```bash
 python -mnfctagger
+```
+
+To use the library in your code, you can use the following example:
+
+```python
+from nfctagger import PCSCWaiter
+
+waiter = PCSCWaiter()
+
+ncards = 0
+while True:
+    # wait for a card to be detected for 1 second
+    connection = waiter.get_next_connection(timeout=1)
+    if connection is None:
+        continue
+    handle(connection)
+return 0
 ```
 
 ## Development
