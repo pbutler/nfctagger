@@ -2,6 +2,8 @@
 Can be run from python -m nfctagger
 This is mostly a test for reading and writing to a tag
 """
+import argparse
+import sys
 from datetime import datetime
 from typing import Dict
 
@@ -11,6 +13,8 @@ from smartcard.CardMonitoring import CardMonitor
 from smartcard.CardMonitoring import CardObserver
 from smartcard.util import toHexString
 
+from . import __version__
+from . import PCSCWaiter
 from .devices.ntag import NTag
 from .devices.pcsc import PCSC
 from .tlv import NDEF_TLV
@@ -57,13 +61,10 @@ def decode_atr(atr: str) -> Dict[str, str]:
     }
 
 
-def handle(card_connection):
+def handle(sc: PCSC):
     """
     Handle the NFC card connection and process the data.
     """
-    # use the connection to create the necessary objects
-    sc = PCSC(card_connection)
-
     # drill down to get the tag object
     tag: NTag = sc.get_tag()
 
@@ -92,42 +93,35 @@ def handle(card_connection):
     logger.info(data)
     tag.mem_write_user(data.bytes())
 
-class PCSCObserver(CardObserver):
-    """Observer class for NFC card detection and processing."""
-    def __init__(self, fn):
-        super().__init__()
-        self._fn = fn
-
-    def update(self, observable, handlers):
-        """
-        The handler for the pyscard observer code.
-        """
-        (addedcards, _) = handlers
-        for card in addedcards:
-            logger.info(f"Card detected, ATR: {toHexString(card.atr)}")
-            logger.info(f"Card ATR: {decode_atr(toHexString(card.atr))}")
-            try:
-                connection = card.createConnection()
-                connection.connect()
-                self._fn(connection)
-            except Exception as e:
-                logger.exception(f"An error occurred: {e}")
-                raise
-
 
 def main():
-    #nothing fancy here this is just how pyscard works, see observer above
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("-q", "--quiet", action="store_false", dest="verbose",
+                        help="don't print status messages to stdout")
+    parser.add_argument("--version", action="version",
+                        version="%(prog)s " + __version__)
+    #parser.add_argument("args", type=str, nargs="*",
+    #                    help="an integer for the accumulator")
+    parser.add_argument("--cards", type=int, default=1)
+    parser.add_argument("--timeout", type=float, default=1)
+    options = parser.parse_args()
+    
+
+    
     print("Starting NFC card processing...")
-    cardmonitor = CardMonitor()
-    cardobserver = PCSCObserver(handle)
-    # once addObserver is called, the observer will listen in a separate thread
-    cardmonitor.addObserver(cardobserver)
+    wait = PCSCWaiter()
 
-    try:
-        input("Press Enter to stop...\n")
-    finally:
-        cardmonitor.deleteObserver(cardobserver)
-
+    ncards = 0
+    while True:
+        if options.cards > 0 and ncards >= options.cards:
+            break
+        # wait for a card to be detected for 1 second
+        connection = wait.get_next_connection(timeout=1)
+        if connection is None:
+            continue
+        ncards += 1
+        handle(connection)
+    return 0
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
