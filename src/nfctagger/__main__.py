@@ -7,17 +7,19 @@ import sys
 from datetime import datetime
 from typing import Dict
 
-import ndef
 from loguru import logger
 from smartcard.CardMonitoring import CardMonitor
 from smartcard.CardMonitoring import CardObserver
 from smartcard.util import toHexString
 
+import ndef
 from . import __version__
 from . import PCSCWaiter
 from .devices.ntag import NTag
 from .devices.pcsc import PCSC
+from .ndef import NDEF
 from .tlv import NDEF_TLV
+
 
 def decode_atr(atr: str) -> Dict[str, str]:
     """Decode the ATR (Answer to Reset) string into readable components.
@@ -75,6 +77,7 @@ def handle(sc: PCSC):
     # read the entire user memory (higher level)
     data = tag.mem_read_user()
 
+    #TODO: Write code to parse ndefs at a higher level
     # parse the data from NDEF TLV
     tlv = NDEF_TLV(bdata=data)
     logger.info(tlv)
@@ -84,14 +87,15 @@ def handle(sc: PCSC):
     for record in decoder:
         logger.info(record)
 
+
     # write a new record to the tag, overwriting the old
-    rec = ndef.TextRecord(f"Hello, World!: {datetime.now()}")
-    ndef_msg = b"".join(ndef.message_encoder([rec]))
+    ndefs = NDEF()
+    ndefs.add_uri("https://pypi.org/project/nfctagger/")
+    ndefs.add_text(f"Hello, World!: {datetime.now()}")
 
     # build a valid TLV entry with the ndef message to be written
-    data = NDEF_TLV(data={"value": ndef_msg})
-    logger.info(data)
-    tag.mem_write_user(data.bytes())
+    logger.info(ndefs)
+    tag.mem_write_user(ndefs.bytes())
 
 
 def main():
