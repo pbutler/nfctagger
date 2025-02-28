@@ -2,7 +2,6 @@
 Reference to the Protocol: https://www.nxp.com/docs/en/data-sheet/NTAG213_215_216.pdf
 """
 import hashlib
-from binascii import hexlify
 from typing import Optional
 from typing import Union
 
@@ -263,6 +262,25 @@ class NTag(Tag):
                 logger.warning("Pack mismatch")
                 return False
 
+    def get_config_pages(self):
+        bdata = self.mem_read4(self._page_len - 4)
+        cpages = ConfigPages(bdata=bdata)
+        return cpages
+
+    def is_protected(self, page: Optional[int] = None) -> bool:
+        """
+        Check if a page is protected
+
+        :param page: page to check, if None check the first page
+        """
+        cpages = self.get_config_pages()
+        if page is None:
+            page = self._page_len - 1
+
+        logger.debug(f"Current Config: {cpages}")
+        logger.debug(f"Checking if page {page} >= {cpages._data.auth0}")
+        return page >= cpages._data.auth0
+
     def secure_page_after(self, page: int, readprot: Optional[bool] = None):
         """
         Secure the page after the given page
@@ -273,9 +291,9 @@ class NTag(Tag):
                          None: Leave as is, don't change, defaults to None
         """
         logger.debug(f"Securing page {page} and up")
-        bdata = self.mem_read4(self._page_len - 4)
-        cpages = ConfigPages(bdata=bdata)
+        cpages = self.get_config_pages()
         logger.debug(f"Current Config: {cpages}")
+
         cpages._data.auth0 = page
         if readprot is not None:
             cpages._data.access.prot = readprot

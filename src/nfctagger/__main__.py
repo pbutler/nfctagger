@@ -75,9 +75,11 @@ def handle(sc: PCSC):
     #Read in the SN or UID of the tag
     logger.info(f"UID: {hexlify(tag.get_uid(), "-")}")
 
-    if not tag.authenticate(password):
-        logger.error("Failed to authenticate with the tag")
-        raise ValueError("Failed to authenticate with the tag")
+    # authenticate with the tag if needed
+    if tag.is_protected():
+        if not tag.authenticate(password):
+            logger.error("Failed to authenticate with the tag")
+            raise ValueError("Failed to authenticate with the tag")
 
     tag.set_password(password)
     tag.secure_page_after(0x04)
