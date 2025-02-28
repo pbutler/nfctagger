@@ -158,13 +158,31 @@ class NTag(Tag):
         return NTagResponse(bdata=resp.child())
 
     def get_tag_version(self):
+    def get_uid(self) -> bytes:
+        """
+        Get the UID of the tag, will be a 7 byte value starting with 0x04
+        """
+        data = self.mem_read4(0)
+        uid = data[:3] + data[4:8]
+        bcc0 = data[3]
+        bcc1 = data[8]
+        assert uid[0] == 0x04
+        assert bcc0 == (0x88 ^ uid[0] ^ uid[1] ^ uid[2])
+        assert bcc1 == (uid[3] ^ uid[4] ^ uid[5] ^ uid[6])
+        return uid
+
+    def get_tag_version(self, config: bool=False) -> str:
         """
         Get the tag version (mostly the type to infer the size)
+        :param config: if true configure type based upon response
+        otherwise just report back
         """
         response = self.write(NTagVersionCmd())
         response = NTagVersionResp(bdata=response.bytes())
-        self._user_size = response.mem_size()
-        return self._user_size
+        tag_type = response._data.storage_size
+        if config:
+            self.set_type(tag_type)
+        return tag_type
 
     def mem_read4(self, address: int):
         """
