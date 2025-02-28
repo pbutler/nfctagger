@@ -84,7 +84,11 @@ class PCSCObserver(CardObserver):
         (addedcards, _) = handlers
         for card in addedcards:
             logger.info(f"Card detected, ATR: {toHexString(card.atr)}")
-            logger.info(f"Card ATR: {decode_atr(toHexString(card.atr))}")
+            atr = decode_atr(toHexString(card.atr))
+            logger.info(f"Card ATR: {atr}")
+            if atr["Standard"] != "ISO 14443A, Part 3":
+                logger.warning(f"Card standard not supported: {atr['Standard']}")
+                continue
             try:
                 connection = card.createConnection()
                 connection.connect()
