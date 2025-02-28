@@ -214,7 +214,8 @@ class NTag(Tag):
         :param address: address to write to by page #
         :param data: data, 4 bytes to write
         """
-        assert len(data) == 4
+        if len(data) != 4:
+            raise ValueError("Data must be 4 bytes long")
         response = self.write(NTagWriteCmd(data={"addr": address, "data": data}))
         response = NTagWriteResp(bdata=response.bytes())
 
