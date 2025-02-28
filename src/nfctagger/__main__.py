@@ -31,11 +31,11 @@ def decode_atr(atr: str) -> Dict[str, str]:
     Returns:
         Dict[str, str]: Dictionary containing readable information about the card.
     """
-    atr = atr.split(" ")
+    atr_parts = atr.split(" ")
 
-    rid = atr[7:12]
-    standard = atr[12]
-    card_name = atr[13:15]
+    rid = atr_parts[7:12]
+    standard = atr_parts[12]
+    card_name = atr_parts[13:15]
 
     card_names = {
         "00 01": "MIFARE Classic 1K",
