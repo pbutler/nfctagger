@@ -1,7 +1,9 @@
 """
 Reference to the Protocol: https://www.nxp.com/docs/en/data-sheet/NTAG213_215_216.pdf
 """
-
+import hashlib
+from binascii import hexlify
+from typing import Optional
 from typing import Union
 
 import construct as c
@@ -12,6 +14,34 @@ from . import Tag
 from ..data import Command
 from ..data import Frame
 from ..data import Response
+
+class ConfigPages(Frame):
+    def _struct(self) -> c.Construct:
+        return c.Struct(
+            "mirror" / c.BitStruct(
+                    "mirror_uid" / c.Flag, #pyright: ignore
+                    "mirror_cnt" / c.Flag, #pyright: ignore
+                    "mirror_byte" / c.BitsInteger(2),
+                    "rfui0" / c.Const(0, c.BitsInteger(1)),
+                    "strong_mod" / c.Flag, #pyright: ignore
+                    "rfui1" / c.Const(0, c.BitsInteger(2)),
+                ),
+            "rfui0" / c.Const(b"\x00", c.Bytes(1)),
+            "mirror_page" / c.Int8ul, #pyright: ignore
+            "auth0" / c.Int8ul, #pyright: ignore
+            "access" / c.BitStruct(
+                    "prot" / c.Flag, #pyright: ignore
+                    "cfglck" / c.Flag, #pyright: ignore
+                    "rfui0" / c.Const(0, c.BitsInteger(1)),
+                    "nfc_cnt_en" / c.Flag, #pyright: ignore
+                    "nfc_cnt_pwd_prot" / c.Flag, #pyright: ignore
+                    "authlim" / c.BitsInteger(3),
+                ),
+            "rfui1" / c.Bytes(3),
+            "pwd" / c.Bytes(4), 
+            "pack" / c.Bytes(2),
+            "rfui2" / c.Const(b"\x00\x00"),
+        )
 
 
 class NTagResponse(Response):
@@ -98,6 +128,27 @@ class NTagVersionResp(Response):
         }[self._data.storage_size]
 
 
+class NTagPwdAuthCmd(Command):
+    """Authenticate Command"""
+
+    def _struct(self):
+        return c.Struct(
+            "cmd" / c.Const(b"\x1b"),
+            "pwd" / c.Bytes(4),
+        )
+
+class NTagPwdAuthResp(Response):
+    """Authenticate Response"""
+
+    def _struct(self):
+        return c.Struct(
+            "pack" / c.Bytes(2),
+        )
+
+def get_pwd_pack(password: str, uid: bytes) -> tuple[bytes, bytes]:
+    key = hashlib.scrypt(password.encode("utf-8"), salt=uid, n=2**14, r=8, p=1, dklen=6)
+    return (key[:4], key[-2:])
+
 class NTag(Tag):
     """Implementation of the NTAG21x Tag"""
 
@@ -157,7 +208,6 @@ class NTag(Tag):
         resp = self._connection.write(cmd, tunnel=True)
         return NTagResponse(bdata=resp.child())
 
-    def get_tag_version(self):
     def get_uid(self) -> bytes:
         """
         Get the UID of the tag, will be a 7 byte value starting with 0x04
@@ -170,6 +220,78 @@ class NTag(Tag):
         assert bcc0 == (0x88 ^ uid[0] ^ uid[1] ^ uid[2])
         assert bcc1 == (uid[3] ^ uid[4] ^ uid[5] ^ uid[6])
         return uid
+
+    def set_password(self, password: str):
+        """
+        Set the password for the tag, this will also set the pack
+
+        :param password: password to set, will use an scrypt key
+        derivation algorithm to create the PWD key and the PACK value
+        """
+        """
+        Set the password for the tag
+        """
+        logger.debug("Setting password")
+        uid = self.get_uid()
+        pwd, pack = get_pwd_pack(password, uid)
+        self.mem_write4(self._page_len - 2, pwd)
+        self.mem_write4(self._page_len - 1, pack + b"\x00\x00")
+
+    def authenticate(self, password: str):
+        """
+        Authenticate reader to the card.  Also verifies the pack value
+        matches with what we expect.  There doesn't seem to be a 
+        standard so this will only work with nfctagger.
+
+        :param password: password to use for authentication
+        """
+        uid = self.get_uid()
+        pwd, pack = get_pwd_pack(password, uid)
+        response = self.write(NTagPwdAuthCmd(data={"pwd": pwd}))
+
+        # NAK's look like blank responses
+        if len(response.bytes()) != 2:
+            logger.warning("Bad password")
+            return False
+        else:
+            response = NTagPwdAuthResp(bdata=response.bytes())
+            # if pack's don't match then this is either trying to fool 
+            # us or is the wrong tag
+            if response._data.pack == pack:
+                return True
+            else:
+                logger.warning("Pack mismatch")
+                return False
+
+    def secure_page_after(self, page: int, readprot: Optional[bool] = None):
+        """
+        Secure the page after the given page
+
+        :param page: page to start protecting
+        :param readprot: True: protect pages from reading/writing
+                         False: protect pages only from writing, 
+                         None: Leave as is, don't change, defaults to None
+        """
+        logger.debug(f"Securing page {page} and up")
+        bdata = self.mem_read4(self._page_len - 4)
+        cpages = ConfigPages(bdata=bdata)
+        logger.debug(f"Current Config: {cpages}")
+        cpages._data.auth0 = page
+        if readprot is not None:
+            cpages._data.access.prot = readprot
+
+        logger.debug(f"New Config: {cpages}")
+
+        newdata = cpages.bytes()
+        for i in range(2):
+            self.mem_write4(self._page_len - 4 + i, newdata[i * 4: (i + 1) * 4])
+
+    def get_cc(self):
+        """
+        Get the capability container
+        """
+        data = self.mem_read4(3)[:4]
+        return data
 
     def get_tag_version(self, config: bool=False) -> str:
         """
