@@ -10,6 +10,7 @@ from loguru import logger
 from . import Device
 from . import Tag
 from ..data import Command
+from ..data import Frame
 from ..data import Response
 
 
@@ -100,17 +101,46 @@ class NTagVersionResp(Response):
 class NTag(Tag):
     """Implementation of the NTAG21x Tag"""
 
-    def __init__(self, connection: Device):
+    def __init__(self, connection: Device, tag_type: str = "ntag215"):
         super().__init__(connection)
         # Default values for NTAG215
-        self._size = 540
-        self._user_size = 504
         # first user, non-config page is 4
         self._user_start_page = 4
+        self._confs = {
+            "ntag213": {
+                "size": 144,
+                "user_size": 132,
+            },
+            "ntag215": {
+                "size": 540, 
+                "user_size": 504,
+            },
+            "ntag216": {
+                "size": 924,
+                "user_size": 888,
+            },
+        }
+        self.set_type(tag_type)
+
+    def set_type(self, tag_type: str):
+        """
+        Set the tag type to a different type than the default
+
+        :param tag_type: type of tag, ntag213, ntag215, ntag216
+        """
+        self.type = tag_type
+        self._size = self._confs[tag_type]["size"]
+        self._user_size = self._confs[tag_type]["user_size"]
+        self._page_len = self._size // 4
 
     @classmethod
     def identify(cls, parent: Device) -> bool:
-        # TODO Implement actual identification
+        tmp = cls(parent)
+        try: 
+            tag_type = tmp.get_tag_version(config=True)
+            logger.debug(f"NTag Identified tag as {tag_type}")
+        except Exception:
+            return False
         return True
 
     def write(self, cmd: Command, tunnel: bool = False) -> Response:
