@@ -4,6 +4,7 @@ This is mostly a test for reading and writing to a tag
 """
 import argparse
 import sys
+from binascii import hexlify
 from datetime import datetime
 from typing import Dict
 
@@ -18,7 +19,6 @@ from . import PCSCWaiter
 from .devices.ntag import NTag
 from .devices.pcsc import PCSC
 from .ndef import NDEF
-from .tlv import NDEF_TLV
 
 
 def decode_atr(atr: str) -> Dict[str, str]:
@@ -67,26 +67,27 @@ def handle(sc: PCSC):
     """
     Handle the NFC card connection and process the data.
     """
+    password = "letmein"
     # drill down to get the tag object
-    tag: NTag = sc.get_tag()
+    tag: NTag = sc.get_tag() # pyright: ignore
 
     logger.info(tag.get_tag_version())
-    #For now this is a test statement to read the first 4 bytes of the user memory
-    logger.info(tag.mem_read4(0))
+    #Read in the SN or UID of the tag
+    logger.info(f"UID: {hexlify(tag.get_uid(), "-")}")
 
+    if not tag.authenticate(password):
+        logger.error("Failed to authenticate with the tag")
+        raise ValueError("Failed to authenticate with the tag")
+
+    tag.set_password(password)
+    tag.secure_page_after(0x04)
     # read the entire user memory (higher level)
     data = tag.mem_read_user()
 
     #TODO: Write code to parse ndefs at a higher level
     # parse the data from NDEF TLV
-    tlv = NDEF_TLV(bdata=data)
-    logger.info(tlv)
-
-    # get the V from the TLV and print it
-    decoder = ndef.message_decoder(tlv._data.value)
-    for record in decoder:
-        logger.info(record)
-
+    ndefmsg = NDEF.parse(data)
+    logger.info(f"Read: {ndefmsg}")
 
     # write a new record to the tag, overwriting the old
     ndefs = NDEF()
@@ -94,7 +95,7 @@ def handle(sc: PCSC):
     ndefs.add_text(f"Hello, World!: {datetime.now()}")
 
     # build a valid TLV entry with the ndef message to be written
-    logger.info(ndefs)
+    logger.info(f"Writing: {ndefs}")
     tag.mem_write_user(ndefs.bytes())
 
 
