@@ -35,6 +35,13 @@ class NDEF_TLV(Frame):
     TLV structure that automatically calculates the length of the value
     and appends the 0xfe terminator.
     """
+    def __init__(self, bdata=None, data=None):
+        super().__init__(bdata=bdata, data=data)
+        if "length" not in self._data:
+            self._data["length"] = len(self._data["value"])
+
+        assert self._data["length"] == len(self._data["value"])
+
     def _struct(self):
         return c.Struct(
             "type" / c.Const(b"\x03"),
